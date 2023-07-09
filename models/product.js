@@ -4,6 +4,7 @@ const ProductSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
+    unique: true,
   },
   description: {
     type: String,
@@ -53,6 +54,19 @@ const ProductSchema = new mongoose.Schema({
   deleted: {
     type: Boolean,
     default: false,
+  },
+});
+
+const virtual = ProductSchema.virtual('id');
+virtual.get(function () {
+  return this._id;
+});
+
+ProductSchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) {
+    delete ret._id;
   },
 });
 
