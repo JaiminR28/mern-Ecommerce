@@ -5,10 +5,7 @@ exports.fetchAllBrands = async (req, res) => {
     const brands = await Brands.find({}).exec();
 
     if (brands) {
-      res.status(200).json({
-        status: 'success',
-        brands,
-      });
+      res.status(200).json(brands);
     }
   } catch (error) {
     res.status(400).json({
@@ -24,10 +21,7 @@ exports.createBrand = async (req, res) => {
     await brand.save();
 
     if (brand) {
-      res.status(201).json({
-        status: 'sucess',
-        brand,
-      });
+      res.status(201).json(brand);
     }
   } catch (error) {
     res.status(400).json({

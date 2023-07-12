@@ -1,16 +1,28 @@
 const express = require('express');
 const mongoose = require('mongoose');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const cors = require('cors');
+
 const productsRouter = require('./routes/productsRouter');
 const brandsRouter = require('./routes/brandsRouter');
 const categoryRouter = require('./routes/categoryRouter');
+const userRouter = require('./routes/UserRouter');
+const authRouter = require('./routes/authRouter');
 
 const server = express();
 
 // MIDDLEWARES
+server.use(
+  cors({
+    exposedHeaders: ['X-Total-Count'],
+  })
+);
 server.use(express.json()); // to parse req.body
-server.use('/v1/products', productsRouter.router);
-server.use('/v1/categories', categoryRouter.router);
-server.use('/v1/brands', brandsRouter.router);
+server.use('/products', productsRouter.router);
+server.use('/categories', categoryRouter.router);
+server.use('/brands', brandsRouter.router);
+server.use('/users', userRouter.router);
+server.use('/auth', authRouter.router);
 
 async function main() {
   await mongoose.connect('mongodb://localhost:27017/ecommerce');

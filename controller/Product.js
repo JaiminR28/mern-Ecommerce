@@ -43,13 +43,11 @@ exports.fetchAllProducts = async (req, res) => {
   }
 
   // Adding pagination filters
+  // TODO: How to get sorting from discounted price not on actual price 😅
   if (req.query._page && req.query._limit) {
     const pageSize = req.query._limit;
     const page = req.query._page;
     query = query.skip(pageSize * (page - 1)).limit(pageSize);
-    totalProductsQuery = totalProductsQuery
-      .skip(pageSize * (page - 1))
-      .limit(pageSize);
   }
 
   try {
@@ -76,10 +74,7 @@ exports.fetchProductById = async (req, res) => {
     const product = await Product.findById(id);
 
     if (product) {
-      res.status(200).json({
-        status: 'sucess',
-        product,
-      });
+      res.status(200).json(product);
     }
   } catch (error) {
     res.status(400).json({
@@ -97,10 +92,7 @@ exports.updateProduct = async (req, res) => {
     });
 
     if (product) {
-      res.status(200).json({
-        status: 'sucess',
-        product,
-      });
+      res.status(200).json(product);
     }
   } catch (error) {
     res.status(400).json({

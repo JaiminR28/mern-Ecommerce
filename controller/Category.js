@@ -5,10 +5,7 @@ exports.fetchAllCategories = async (req, res) => {
     const categories = await Category.find({}).exec();
 
     if (categories) {
-      res.status(200).json({
-        status: 'success',
-        categories,
-      });
+      res.status(200).json(categories);
     }
   } catch (error) {
     res.status(400).json({
@@ -20,14 +17,11 @@ exports.fetchAllCategories = async (req, res) => {
 
 exports.createCategory = async (req, res) => {
   try {
-    const brand = new Category(req.body);
-    await brand.save();
+    const category = new Category(req.body);
+    await category.save();
 
-    if (brand) {
-      res.status(201).json({
-        status: 'sucess',
-        brand,
-      });
+    if (category) {
+      res.status(201).json(category);
     }
   } catch (error) {
     res.status(400).json({
