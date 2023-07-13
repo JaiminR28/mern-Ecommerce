@@ -8,6 +8,7 @@ const brandsRouter = require('./routes/brandsRouter');
 const categoryRouter = require('./routes/categoryRouter');
 const userRouter = require('./routes/UserRouter');
 const authRouter = require('./routes/authRouter');
+const cartRouter = require('./routes/cartRouter');
 
 const server = express();
 
@@ -23,6 +24,7 @@ server.use('/categories', categoryRouter.router);
 server.use('/brands', brandsRouter.router);
 server.use('/users', userRouter.router);
 server.use('/auth', authRouter.router);
+server.use('/cart', cartRouter.router);
 
 async function main() {
   await mongoose.connect('mongodb://localhost:27017/ecommerce');
