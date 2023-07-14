@@ -1,9 +1,9 @@
 const { Order } = require('../models/Order');
 
 exports.fetchOrderByUser = async (req, res) => {
-  const { user } = req.query;
+  const { userId } = req.query;
   try {
-    const order = await Order.find({ user: user }).populate('user');
+    const order = await Order.find({ user: userId }).populate('user');
 
     if (order) {
       res.status(200).json(order);
@@ -55,6 +55,44 @@ exports.updateOrder = async (req, res) => {
 
     if (order) {
       res.status(200).json(order);
+    }
+  } catch (error) {
+    res.status(400).json({
+      status: 'error',
+      error,
+    });
+  }
+};
+
+exports.fetchAllOrders = async (req, res) => {
+  let query = Order.find({ deleted: { $ne: true } });
+  let totalOrdersQuery = Order.find({ deleted: { $ne: true } });
+
+  // Adding query to sort the products based on the order like from rating : low to high
+  if (req.query._sort && req.query._order) {
+    query = query.sort({ [req.query._sort]: req.query._order });
+    totalOrdersQuery = totalOrdersQuery.sort({
+      [req.query._sort]: req.query._order,
+    });
+  }
+
+  // Adding pagination filters
+  // TODO: How to get sorting from discounted price not on actual price 😅
+  if (req.query._page && req.query._limit) {
+    const pageSize = req.query._limit;
+    const page = req.query._page;
+    query = query.skip(pageSize * (page - 1)).limit(pageSize);
+  }
+
+  try {
+    const docs = await query.exec();
+    const totalDocs = await totalOrdersQuery.count().exec();
+
+    // TODO: We have to try with multiple categoeries
+    res.set('X-Total-Count', totalDocs);
+
+    if (docs) {
+      res.status(200).json(docs);
     }
   } catch (error) {
     res.status(400).json({
