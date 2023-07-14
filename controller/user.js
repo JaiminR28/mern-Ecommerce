@@ -3,7 +3,7 @@ const { Users } = require('../models/User');
 exports.fetchUserById = async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await Users.findById(id, 'name email id').exec();
+    const user = await Users.findById(id).exec();
 
     if (user) {
       res.status(200).json(user);

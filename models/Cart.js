@@ -1,27 +1,21 @@
 const mongoose = require('mongoose');
 
-const CartSchema = new mongoose.Schema(
-  {
-    quantity: {
-      type: Number,
-      min: 0,
-    },
-    product: {
-      type: mongoose.Schema.ObjectId,
-      ref: 'Product',
-      required: true,
-    },
-    user: {
-      type: mongoose.Schema.ObjectId,
-      ref: 'Users',
-      required: true,
-    },
+const CartSchema = new mongoose.Schema({
+  quantity: {
+    type: Number,
+    min: 0,
   },
-  {
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  }
-);
+  product: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Product',
+    required: true,
+  },
+  user: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Users',
+    required: true,
+  },
+});
 
 const virtual = CartSchema.virtual('id');
 virtual.get(function () {

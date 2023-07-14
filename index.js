@@ -1,6 +1,7 @@
+/* eslint-disable import/no-extraneous-dependencies */
 const express = require('express');
 const mongoose = require('mongoose');
-// eslint-disable-next-line import/no-extraneous-dependencies
+const morgan = require('morgan');
 const cors = require('cors');
 
 const productsRouter = require('./routes/productsRouter');
@@ -18,6 +19,9 @@ server.use(
     exposedHeaders: ['X-Total-Count'],
   })
 );
+
+server.use(morgan('dev'));
+
 server.use(express.json()); // to parse req.body
 server.use('/products', productsRouter.router);
 server.use('/categories', categoryRouter.router);
