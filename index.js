@@ -9,7 +9,7 @@ const passport = require('passport');
 const crypto = require('crypto');
 const JwtStrategy = require('passport-jwt').Strategy;
 const { ExtractJwt } = require('passport-jwt');
-// const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
 const LocalStrategy = require('passport-local').Strategy;
 
@@ -65,49 +65,50 @@ server.use('/orders', isAuth(), orderRouter.router);
 // passport Strategies
 passport.use(
   'local',
-  new LocalStrategy(async (username, password, done) => {
-    // by default passport uses username
-    try {
-      const user = await Users.findOne({ email: username }).exec();
-      if (!user) {
-        done(null, false, { message: 'no such user email' });
-      }
-      crypto.pbkdf2(
-        password,
-        user.salt,
-        310000,
-        32,
-        'sha256',
-        async (err, hashedPassword) => {
-          console.log(user);
-          // this is just temp. , we will use strong password encription later
-
-          if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
-            return done(null, false, { message: 'Invalid Crendentials' });
-          }
-          // const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
-          done(null); // this line sends user to serialize
+  new LocalStrategy(
+    { usernameField: 'email' },
+    async (email, password, done) => {
+      // by default passport uses username
+      console.log({ email, password });
+      try {
+        const user = await Users.findOne({ email: email });
+        // console.log(email, password, user);
+        if (!user) {
+          return done(null, false, { message: 'invalid credentials' }); // for safety
         }
-      );
-    } catch (error) {
-      done(error);
+        crypto.pbkdf2(
+          password,
+          user.salt,
+          310000,
+          32,
+          'sha256',
+          async (err, hashedPassword) => {
+            if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
+              return done(null, false, { message: 'invalid credentials' });
+            }
+            const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
+            done(null, { id: user.id, role: user.role, token }); // this lines sends to serializer
+          }
+        );
+      } catch (err) {
+        done(err);
+      }
     }
-  })
+  )
 );
 
 passport.use(
   'jwt',
   new JwtStrategy(opts, async (jwt_payload, done) => {
-    console.log({ jwt_payload });
     try {
-      const user = await Users.findOne({ id: jwt_payload.sub });
+      const user = await Users.findById(jwt_payload.id);
       if (user) {
+        console.log(user);
         return done(null, sanitizeUser(user)); // this calls serializer
       }
       return done(null, false);
-      // or you could create a new account
-    } catch (error) {
-      return done(error, false);
+    } catch (err) {
+      return done(err, false);
     }
   })
 );
@@ -115,7 +116,6 @@ passport.use(
 // Serialize and deserilize user
 // this creates session variables req.user on being called
 passport.serializeUser((user, cb) => {
-  console.log('serialize', user);
   process.nextTick(() =>
     cb(null, {
       id: user.id,
@@ -126,7 +126,6 @@ passport.serializeUser((user, cb) => {
 
 // this creates session variables req.user on being called from authorizeed request
 passport.deserializeUser((user, cb) => {
-  console.log('de-serialize', user);
   process.nextTick(() => cb(null, user));
 });
 
