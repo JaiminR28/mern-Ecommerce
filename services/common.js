@@ -1,9 +1,5 @@
-exports.isAuth = (req, res, done) => {
-  if (req.user) {
-    done();
-  } else {
-    res.send(401);
-  }
-};
+const passport = require('passport');
+
+exports.isAuth = (req, res) => passport.authenticate('jwt');
 
 exports.sanitizeUser = (user) => ({ id: user.id, role: user.role });

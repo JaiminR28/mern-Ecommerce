@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* eslint-disable import/no-extraneous-dependencies */
 const express = require('express');
 const mongoose = require('mongoose');
@@ -6,6 +7,9 @@ const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
 const crypto = require('crypto');
+const JwtStrategy = require('passport-jwt').Strategy;
+const { ExtractJwt } = require('passport-jwt');
+// const jwt = require('jsonwebtoken');
 
 const LocalStrategy = require('passport-local').Strategy;
 
@@ -22,6 +26,14 @@ const { isAuth, sanitizeUser } = require('./services/common');
 const server = express();
 
 // MIDDLEWARES
+
+// JWT Options
+
+const SECRET_KEY = 'SECRET_KEY';
+
+const opts = {};
+opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+opts.secretOrKey = SECRET_KEY; // TODO:  should not be in the code;
 
 server.use(
   session({
@@ -42,16 +54,17 @@ server.use(
 server.use(morgan('dev'));
 
 server.use(express.json()); // to parse req.body
-server.use('/products', isAuth, productsRouter.router);
-server.use('/categories', categoryRouter.router);
-server.use('/brands', brandsRouter.router);
+server.use('/products', isAuth(), productsRouter.router);
+server.use('/categories', isAuth(), categoryRouter.router);
+server.use('/brands', isAuth(), brandsRouter.router);
 server.use('/users', userRouter.router);
 server.use('/auth', authRouter.router);
-server.use('/cart', cartRouter.router);
-server.use('/orders', orderRouter.router);
+server.use('/cart', isAuth(), cartRouter.router);
+server.use('/orders', isAuth(), orderRouter.router);
 
 // passport Strategies
 passport.use(
+  'local',
   new LocalStrategy(async (username, password, done) => {
     // by default passport uses username
     try {
@@ -72,11 +85,29 @@ passport.use(
           if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
             return done(null, false, { message: 'Invalid Crendentials' });
           }
-          done(null, sanitizeUser(user)); // this line sends user to serialize
+          // const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
+          done(null); // this line sends user to serialize
         }
       );
     } catch (error) {
       done(error);
+    }
+  })
+);
+
+passport.use(
+  'jwt',
+  new JwtStrategy(opts, async (jwt_payload, done) => {
+    console.log({ jwt_payload });
+    try {
+      const user = await Users.findOne({ id: jwt_payload.sub });
+      if (user) {
+        return done(null, sanitizeUser(user)); // this calls serializer
+      }
+      return done(null, false);
+      // or you could create a new account
+    } catch (error) {
+      return done(error, false);
     }
   })
 );
@@ -107,14 +138,6 @@ async function main() {
 
 // eslint-disable-next-line no-console
 main().catch(() => console.log('Could not connect to the database !!'));
-
-server.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-  });
-});
-
-// server.post('/products', createProduct);
 
 server.listen(8000, () => {
   // eslint-disable-next-line no-console
