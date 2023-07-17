@@ -1,9 +1,10 @@
+/* eslint-disable node/no-unsupported-features/es-syntax */
 const { Cart } = require('../models/Cart');
 
 exports.fetchCartByUser = async (req, res) => {
-  const { user } = req.query;
+  const { id } = req.user;
   try {
-    const UserCart = await Cart.find({ user: user })
+    const UserCart = await Cart.find({ user: id })
       .populate('user')
       .populate('product');
 
@@ -19,8 +20,9 @@ exports.fetchCartByUser = async (req, res) => {
 };
 
 exports.addToCart = async (req, res) => {
+  const { id } = req.user;
   try {
-    const cartItem = new Cart(req.body);
+    const cartItem = new Cart({ ...req.body, user: id });
     await cartItem.save();
     const result = await cartItem.populate('product');
 
