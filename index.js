@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable import/no-extraneous-dependencies */
+
+const dotenv = require('dotenv');
 const express = require('express');
 const mongoose = require('mongoose');
 const morgan = require('morgan');
@@ -22,30 +24,64 @@ const authRouter = require('./routes/authRouter');
 const cartRouter = require('./routes/cartRouter');
 const orderRouter = require('./routes/ordersRouter');
 const { Users } = require('./models/User');
-const {
-  isAuth,
-  sanitizeUser,
-  cookieExtractor,
-  SECRET_KEY,
-} = require('./services/common');
+const { isAuth, sanitizeUser, cookieExtractor } = require('./services/common');
 
 const server = express();
 
 // MIDDLEWARES
+dotenv.config({ path: './config.env' });
 
 server.use(express.static('build'));
 server.use(cookieParser());
 // JWT Options
 
+// Payment Webhook
+// This is your Stripe CLI webhook secret for testing your endpoint locally.
+// TODO: we will capture actual order after  deploying out server live
+const endpointSecret = process.env.WEBHOOK_ENDPOINT;
+
+server.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  (request, response) => {
+    const sig = request.headers['stripe-signature'];
+
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+    } catch (err) {
+      response.status(400).send(`Webhook Error: ${err.message}`);
+      return;
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        // eslint-disable-next-line no-case-declarations
+        const paymentIntentSucceeded = event.data.object;
+        console.log({ paymentIntentSucceeded });
+        // Then define and call a function to handle the event payment_intent.succeeded
+        break;
+      // ... handle other event types
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    // Return a 200 response to acknowledge receipt of the event
+    response.send();
+  }
+);
+
 // ...
 
 const opts = {};
 opts.jwtFromRequest = cookieExtractor;
-opts.secretOrKey = SECRET_KEY; // TODO:  should not be in the code;
+opts.secretOrKey = process.env.SECRET_KEY; // TODO:  should not be in the code;
 
 server.use(
   session({
-    secret: 'Keyboard Cat',
+    secret: process.env.SESSION_SECRET,
     resave: false, // don't save session if modified
     saveUninitialized: false, // don't create session until something stored
   })
@@ -78,7 +114,6 @@ passport.use(
     { usernameField: 'email' },
     async (email, password, done) => {
       // by default passport uses username
-      console.log({ email, password });
       try {
         const user = await Users.findOne({ email: email });
         // console.log(email, password, user);
@@ -95,7 +130,8 @@ passport.use(
             if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
               return done(null, false, { message: 'invalid credentials' });
             }
-            const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
+            const token = jwt.sign(sanitizeUser(user), process.env.SECRET_KEY);
+            console.log(user, token);
             done(null, { id: user.id, role: user.role, token }); // this lines sends to serializer
           }
         );
@@ -137,8 +173,31 @@ passport.deserializeUser((user, cb) => {
   process.nextTick(() => cb(null, user));
 });
 
+// Payments
+
+// This is your test secret API key.
+// eslint-disable-next-line import/order, node/no-extraneous-require
+const stripe = require('stripe')(process.env.STRIPE_ENDPOINT);
+
+server.post('/create-payment-intent', async (req, res) => {
+  const { totalAmount } = req.body;
+
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: totalAmount * 100, // for decimal compensation
+    currency: 'inr',
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret,
+  });
+});
+
 async function main() {
-  await mongoose.connect('mongodb://localhost:27017/ecommerce');
+  await mongoose.connect(process.env.MONGODB_DATABASE);
   // eslint-disable-next-line no-console
   console.log('Database connected Succesfully !!');
 }
@@ -146,7 +205,7 @@ async function main() {
 // eslint-disable-next-line no-console
 main().catch(() => console.log('Could not connect to the database !!'));
 
-server.listen(8000, () => {
+server.listen(process.env.PORT, () => {
   // eslint-disable-next-line no-console
   console.log('Server Started !!');
 });
