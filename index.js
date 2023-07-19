@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 /* eslint-disable camelcase */
 /* eslint-disable import/no-extraneous-dependencies */
 
@@ -13,6 +14,7 @@ const JwtStrategy = require('passport-jwt').Strategy;
 // const { ExtractJwt } = require('passport-jwt');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
+const path = require('path');
 
 const LocalStrategy = require('passport-local').Strategy;
 
@@ -31,7 +33,7 @@ const server = express();
 // MIDDLEWARES
 dotenv.config({ path: './config.env' });
 
-server.use(express.static('build'));
+server.use(express.static(path.resolve(__dirname, 'build')));
 server.use(cookieParser());
 // JWT Options
 
@@ -105,8 +107,12 @@ server.use('/brands', isAuth(), brandsRouter.router);
 server.use('/users', isAuth(), userRouter.router);
 server.use('/auth', authRouter.router);
 server.use('/cart', isAuth(), cartRouter.router);
+// this /orders is clashing with react /orders
 server.use('/orders', isAuth(), orderRouter.router);
-
+// this line we add to make react router work in case of other routes doesn;t match
+server.get('*', (req, res) =>
+  res.sendFile(path.resolve('build', 'index.html'))
+);
 // passport Strategies
 passport.use(
   'local',
