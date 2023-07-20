@@ -39,6 +39,9 @@ server.use(cookieParser());
 
 // Payment Webhook
 // This is your Stripe CLI webhook secret for testing your endpoint locally.
+// eslint-disable-next-line import/order, node/no-extraneous-require
+const stripe = require('stripe')(process.env.STRIPE_ENDPOINT);
+
 // TODO: we will capture actual order after  deploying out server live
 const endpointSecret = process.env.WEBHOOK_ENDPOINT;
 
@@ -182,8 +185,6 @@ passport.deserializeUser((user, cb) => {
 // Payments
 
 // This is your test secret API key.
-// eslint-disable-next-line import/order, node/no-extraneous-require
-const stripe = require('stripe')(process.env.STRIPE_ENDPOINT);
 
 server.post('/create-payment-intent', async (req, res) => {
   const { totalAmount } = req.body;
